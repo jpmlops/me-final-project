@@ -4,42 +4,33 @@
       <div
         class="text-center text-white p-6 border-2 border-white w-full max-w-md"
       >
-        <h1 class="text-2xl mb-3">Join Our Newsletter</h1>
-        <p class="mb-6 text-lg">Get amazing updates right to your inbox.</p>
-        <form @submit.prevent="submitForm" class="flex flex-col">
+        <h1 class="text-2xl mb-3">Upload Video</h1>
+
+        <form @submit.prevent="uploadVideo" class="flex flex-col">
           <label class="mb-4 text-left text-stone-400">
-            Name
+            Video
             <input
-              v-model="name"
+              type="file"
+              accept="video/*"
+              @change="onFileChange"
+              class="bg-gray-800 text-white w-full px-3 py-2 mt-2"
+            />
+          </label>
+
+          <label class="mb-4 text-left text-stone-400">
+            Interval
+            <input
+              v-model="interval"
               type="text"
               class="bg-gray-800 text-white w-full px-3 py-2 mt-2"
             />
           </label>
-          <label class="mb-4 text-left text-stone-400">
-            Email
-            <input
-              v-model="email"
-              type="email"
-              class="bg-gray-800 text-white w-full px-3 py-2 mt-2"
-            />
-          </label>
-          <label class="flex items-center text-white mb-4">
-            <input
-              type="checkbox"
-              v-model="consent"
-              class="mr-3"
-              id="updates"
-            />
-            I agree to terms and conditions
-          </label>
-          <button
-            type="submit"
-            class="bg-white text-black px-6 py-2 mt-4"
-            @click.prevent="submitForm"
-          >
+
+          <button type="submit" class="bg-white text-black px-6 py-2 mt-4">
             {{ isLoading ? "Loading..." : "Submit" }}
           </button>
-          <feedback :formFeedback="formFeedback" />
+          <p v-if="uploading" class="pt-3">Uploading...</p>
+          <p v-if="uploadResponse" class="pt-3">{{ uploadResponse }}</p>
         </form>
       </div>
     </div>
@@ -49,45 +40,44 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 definePageMeta({ layout: "default" });
-type FormFeedbackType = "incomplete" | "consent" | "invalid" | "success" | null;
-
-const name = ref("");
-const email = ref("");
-const consent = ref(false);
+const file = ref(null);
+const interval = ref(0);
 const isLoading = ref(false);
-const formFeedback: Ref<FormFeedbackType> = ref(null);
-const success = ref(true);
+const uploading = ref(false);
+const uploadResponse = ref("");
 
-const submitForm = async () => {
-  isLoading.value = true;
-  formFeedback.value = null;
-
-  if (!name.value.trim() || !email.value.trim()) {
-    formFeedback.value = "incomplete";
-    isLoading.value = false;
+function onFileChange(event: any) {
+  file.value = event.target.files[0];
+}
+async function uploadVideo() {
+  if (!file.value) {
+    uploadResponse.value = "Please select a file first.";
+    return;
+  }
+  if (!interval?.value) {
+    uploadResponse.value = "Please enter a valid integer value";
     return;
   }
 
-  const regex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-  if (email.value && !regex.test(email.value)) {
-    formFeedback.value = "invalid";
-    success.value = false;
-    isLoading.value = false;
-    return;
-  }
+  const formData = new FormData();
+  formData.append("file", file.value);
+  formData.append("interval", interval.value);
 
-  if (!consent.value) {
-    formFeedback.value = "consent";
-    success.value = false;
-    isLoading.value = false;
-    return;
-  }
+  uploading.value = true;
+  uploadResponse.value = "";
 
-  setTimeout(() => {
-    // If the execution reaches here, it means that all checks have passed.
-    success.value = true;
-    formFeedback.value = "success";
-    isLoading.value = false;
-  }, 1000);
-};
+  try {
+    const response = await fetch(`http://localhost:8020/extract_frames`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    uploadResponse.value = result.message || "Upload successful!";
+  } catch (error) {
+    uploadResponse.value = "Upload failed!";
+  } finally {
+    uploading.value = false;
+  }
+}
 </script>

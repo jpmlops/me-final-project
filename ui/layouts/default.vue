@@ -1,13 +1,13 @@
 <template>
   <nav class="bg-white shadow">
     <div class="container mx-auto px-6 py-3 flex justify-between items-center">
-      <a href="#" class="text-xl w-[50px] font-semibold text-gray-700"
+      <NuxtLink to="/" class="text-xl w-[50px] font-semibold text-gray-700"
         ><img
           src="../public/images/logo/logo.png"
           alt="logo"
           width="50"
           height="50"
-      /></a>
+      /></NuxtLink>
       <div class="flex-1 ml-10">
         <div class="relative max-w-sm">
           <input
@@ -37,10 +37,10 @@
         </div>
       </div>
       <div class="flex items-center space-x-1">
-        <a
-          href="#"
+        <NuxtLink
+          to="/"
           class="py-2 px-3 text-gray-700 hover:text-gray-900 hidden md:block"
-          >Home</a
+          >Home</NuxtLink
         >
         <a
           href="#"
@@ -57,10 +57,10 @@
           class="py-2 px-3 text-gray-700 hover:text-gray-900 hidden md:block"
           >Contact Us</a
         >
-        <a
-          href="#"
+        <NuxtLink
+          to="/addVideo"
           class="py-2 px-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-300 hidden md:block"
-          >Get Started</a
+          >Get Started</NuxtLink
         >
         <button
           @click="isOpen = !isOpen"
@@ -85,16 +85,18 @@
     </div>
     <!-- mobile menu -->
     <div :class="isOpen ? 'block' : 'hidden'" class="md:hidden">
-      <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">Home</a>
+      <NuxtLink to="/" class="block py-2 px-4 text-sm hover:bg-gray-100"
+        >Home</NuxtLink
+      >
       <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">Careers</a>
       <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">Blog</a>
       <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100"
         >Contact Us</a
       >
-      <a
-        href="#"
+      <NuxtLink
+        to="/addVideo"
         class="block py-2 px-4 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-        >Get Started</a
+        >Get Started</NuxtLink
       >
     </div>
   </nav>
@@ -103,4 +105,12 @@
   </main>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+definePageMeta({ layout: "default" });
+const isOpen = ref<boolean>(false);
+
+useHead({
+  title: "M.E. Final Year - CSE",
+  meta: [{ name: "description", content: "M.E. Final Year - CSE" }],
+});
+</script>

@@ -1,14 +1,14 @@
 <template>  
-  <div class="py-[60px] bg-yellow-900 h-[100%] w-full">
+  <div class="py-[60px] bg-black h-[100%] w-full h-screen">
     <div
-      class="container w-100 mx-auto px-6 py-3 flex justify-between items-center flex-col"
+      class="container mx-auto px-6 py-3 flex justify-between items-center flex-col"
     >
       <div
         class="flex py-[30px] justify-between flex-row text-[#ffffff] w-full"
       >
         <h1 class="text-[20px]">Video list</h1>
         <button class="border-2 p-3 hover:bg-[#ffffff] hover:text-yellow-900">
-          Add Video +
+         <NuxtLink to="/addVideo">Add Video +</NuxtLink> 
         </button>
       </div>
 

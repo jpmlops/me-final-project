@@ -1,6 +1,7 @@
 import cv2
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 from pydantic import BaseModel
 import shutil
@@ -17,12 +18,15 @@ origins = [
 UPLOAD_DIRECTORY = "./uploads"
 FRAMES_DIRECTORY = "./frames"
 
+
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
 
 if not os.path.exists(FRAMES_DIRECTORY):
     os.makedirs(FRAMES_DIRECTORY)
- 
+    
+app.mount("/frames", StaticFiles(directory="frames"), name="frames")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -50,7 +54,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 @app.post("/extract_frames")
-async def extract_frames(file: UploadFile = File(...)):
+async def extract_frames(file: UploadFile = File(...), interval: int = Form(...)):
     try:
         # Save the uploaded video file
         file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
@@ -58,13 +62,13 @@ async def extract_frames(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
         
         # Process the video to extract frames
-        extract_frames_from_video(file_location)
+        extract_frames_from_video(file_location, interval)
         
         return {"message": "Frames have been extracted and saved to the frames directory."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred during video processing: {str(e)}")
 
-def extract_frames_from_video(video_path: str):
+def extract_frames_from_video(video_path: str, interval:int):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise HTTPException(status_code=400, detail="Could not open video file.")
@@ -72,19 +76,24 @@ def extract_frames_from_video(video_path: str):
     frame_count = 0
     success, frame = cap.read()
     while success:
-        frame_filename = os.path.join(FRAMES_DIRECTORY, f"frame_{frame_count}.jpg")
-        cv2.imwrite(frame_filename, frame)
+        if frame_count % interval == 0:
+            frame_filename = os.path.join(FRAMES_DIRECTORY, f"frame_{frame_count}.jpg")
+            cv2.imwrite(frame_filename, frame)
+            print(frame_count)
         frame_count += 1
         success, frame = cap.read()
 
     cap.release()
 
-@app.get("/frames/")
+@app.get("/video-frames")
 async def list_frames():
+    if not os.path.exists(FRAMES_DIRECTORY):
+        raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
+    
     frames = [f for f in os.listdir(FRAMES_DIRECTORY) if os.path.isfile(os.path.join(FRAMES_DIRECTORY, f))]
     return {"frames": frames}
 
-@app.get("/frames/{frame_name}")
+@app.get("/video-frames-details/{frame_name}")
 async def get_frame(frame_name: str):
     frame_path = os.path.join(FRAMES_DIRECTORY, frame_name)
     if os.path.exists(frame_path):
