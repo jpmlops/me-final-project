@@ -5,10 +5,29 @@ from fastapi.staticfiles import StaticFiles
 import os
 from pydantic import BaseModel
 import shutil
-from typing import List
+from pymongo.collection import Collection
+from Db.mongo import db
+from models.video import Video
+
+from pymongo import MongoClient
 
 app = FastAPI()
 
+# Create a global variable for the MongoDB client and database
+client: MongoClient = None
+db: Collection = None
+
+@app.on_event("startup")
+def db_event():
+    global client, db
+    print("startup has begun!!")
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client.me_video
+    collection = db.video
+    item = collection.insert_one({"name": "Sample Item"})
+    print("item: ", item)
+
+    
 origins = [
     "http://localhost:3000",
     "localhost:3000"
@@ -46,6 +65,7 @@ async def read_root() -> dict:
 async def upload_file(file: UploadFile = File(...)):
     try:
         file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+        
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         return {"filename": file.filename}
@@ -58,6 +78,7 @@ async def extract_frames(file: UploadFile = File(...), interval: int = Form(...)
     try:
         # Save the uploaded video file
         file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+        
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
