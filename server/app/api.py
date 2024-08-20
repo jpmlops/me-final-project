@@ -8,7 +8,7 @@ import shutil
 from pymongo.collection import Collection
 from Db.mongo import db
 from models.video import Video
-
+from datetime import datetime
 from pymongo import MongoClient
 
 app = FastAPI()
@@ -23,10 +23,6 @@ def db_event():
     print("startup has begun!!")
     client = MongoClient("mongodb://localhost:27017/")
     db = client.me_video
-    collection = db.video
-    item = collection.insert_one({"name": "Sample Item"})
-    print("item: ", item)
-
     
 origins = [
     "http://localhost:3000",
@@ -64,11 +60,13 @@ async def read_root() -> dict:
 @app.post("/process-video", response_model=FileResponse)
 async def upload_file(file: UploadFile = File(...)):
     try:
-        file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        new_filename = f"video_{timestamp}.mp4"
+        file_location = os.path.join(UPLOAD_DIRECTORY, new_filename)
         
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        return {"filename": file.filename}
+        return {"filename": new_filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail="An error occurred during file upload.")
 
@@ -77,28 +75,38 @@ async def upload_file(file: UploadFile = File(...)):
 async def extract_frames(file: UploadFile = File(...), interval: int = Form(...)):
     try:
         # Save the uploaded video file
-        file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        new_filename = f"video_{timestamp}.mp4"
+        
+        file_location = os.path.join(UPLOAD_DIRECTORY, new_filename)
         
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+            db = client.me_video
+            collection = db.video
+            item = collection.insert_one({"name": new_filename, "slug": f"video_{timestamp}", "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()})
+            # item = collection.insert_one({"name": new_filename, "slug": "video_{timestamp}", "created_at": datetime.now, "updated_at": datetime.now})
+            print("item: ", item)
         
         # Process the video to extract frames
-        extract_frames_from_video(file_location, interval)
+        extract_frames_from_video(file_location, interval, f"video_{timestamp}")
         
         return {"message": "Frames have been extracted and saved to the frames directory."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred during video processing: {str(e)}")
 
-def extract_frames_from_video(video_path: str, interval:int):
+def extract_frames_from_video(video_path: str, interval:int, path: str):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise HTTPException(status_code=400, detail="Could not open video file.")
     
     frame_count = 0
-    success, frame = cap.read()
+    success, frame = cap.read()    
+    nested_dir = os.path.join(FRAMES_DIRECTORY, path)
+    os.makedirs(nested_dir, exist_ok=True)
     while success:
         if frame_count % interval == 0:
-            frame_filename = os.path.join(FRAMES_DIRECTORY, f"frame_{frame_count}.jpg")
+            frame_filename = os.path.join(nested_dir, f"frame_{frame_count}.jpg")
             cv2.imwrite(frame_filename, frame)
             print(frame_count)
         frame_count += 1
@@ -122,40 +130,3 @@ async def get_frame(frame_name: str):
     else:
         raise HTTPException(status_code=404, detail="Frame not found.")
     
-
-@app.get("/todo", tags=["todos"])
-async def get_todos() -> dict:
-    return { "data": todos }
-
-@app.post("/todo", tags=["todos"])
-async def add_todo(todo: dict) -> dict:
-    todo.append(todo)
-    return {
-        "data": { "Todo added." }
-    }
-    
-@app.put("/todo/{id}", tags=["todos"])
-async def update_todo(id: int, body: dict) -> dict:
-    for todo in todo:
-        if int(todo["id"]) == id:
-            todo["item"] = body["item"]
-            return {
-                "data": f"Todo with id {id} has been updated."
-            }
-
-    return {
-        "data": f"Todo with id {id} not found."
-    }
-    
-@app.delete("/todo/{id}", tags=["todos"])
-async def delete_todo(id: int) -> dict:
-    for todo in todos:
-        if int(todo["id"]) == id:
-            todos.remove(todo)
-            return {
-                "data": f"Todo with id {id} has been removed."
-            }
-
-    return {
-        "data": f"Todo with id {id} not found."
-    }
