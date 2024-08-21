@@ -33,8 +33,12 @@
             {{ item.name }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            <NuxtLink :to="{ path: 'frames', query: { param: item.slug } }" class="text-red-700 border-2 border-orange-500 py-1 px-5"> Frames List </NuxtLink>
-
+            <NuxtLink
+              :to="{ path: 'frames', query: { param: item.slug } }"
+              class="text-red-700 border-2 border-orange-500 py-1 px-5"
+            >
+              Frames List
+            </NuxtLink>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             {{ item.created_at }}
