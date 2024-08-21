@@ -116,10 +116,24 @@ def extract_frames_from_video(video_path: str, interval:int, path: str):
 
 @app.get("/video-frames")
 async def list_frames():
-    if not os.path.exists(FRAMES_DIRECTORY):
+    # if not os.path.exists(FRAMES_DIRECTORY):
+    #     raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
+    db = client.me_video
+    collection = db.video
+    # frames = [f for f in os.listdir(FRAMES_DIRECTORY) if os.path.isfile(os.path.join(FRAMES_DIRECTORY, f))]
+    frames = list(collection.find())
+    for item in frames:
+        item["_id"] = str(item["_id"])
+        
+    return {"frames": frames}
+
+@app.get("/frames-list/{folder}")
+async def list_frames(folder:str):
+    frame_path = os.path.join(FRAMES_DIRECTORY, folder)
+    if not os.path.exists(frame_path):
         raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
-    
-    frames = [f for f in os.listdir(FRAMES_DIRECTORY) if os.path.isfile(os.path.join(FRAMES_DIRECTORY, f))]
+
+    frames = [f for f in os.listdir(frame_path) if os.path.isfile(os.path.join(frame_path, f))]        
     return {"frames": frames}
 
 @app.get("/video-frames-details/{frame_name}")

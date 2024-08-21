@@ -2,7 +2,7 @@
   <div v-if="images.length > 0" class="grid grid-cols-12 gap-x-8 gap-y-4">
     <div v-for="image in images" :key="image">
       <img
-        :src="`http://localhost:8020/frames/${image}`"
+        :src="`http://localhost:8020/frames/${queryParam}/${image}`"
         :alt="`Image ${image}`"
       />
     </div>
@@ -16,10 +16,12 @@ definePageMeta({ layout: "default" });
 const images = ref<string[]>([]);
 const skip = ref<number>(0);
 const limit = 20;
-console.log(images.value.length);
+const route = useRoute();
+const queryParam = route.query.param;
+console.log(queryParam, ">>> queryParam");
 const fetchImages = async (): Promise<void> => {
   try {
-    const response = await fetch("http://localhost:8020/video-frames", {
+    const response = await fetch(`http://localhost:8020/frames-list/${queryParam}`, {
       method: "GET",
     });
     const res = await response.json();
