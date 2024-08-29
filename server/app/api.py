@@ -5,11 +5,14 @@ from fastapi.staticfiles import StaticFiles
 import os
 from pydantic import BaseModel
 import shutil
+from keras.models import load_model
 from pymongo.collection import Collection
 from Db.mongo import db
 from models.video import Video
 from datetime import datetime
+import imutils
 from pymongo import MongoClient
+import numpy as np
 
 app = FastAPI()
 
@@ -70,7 +73,63 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="An error occurred during file upload.")
 
+@app.get("/find-abnormal-case", response_model=FileResponse)
+async def find_abnormal_case():
+    model=load_model("saved_model.h5")
+    flag=0
+    cap = cv2.VideoCapture("C:\\Users\\Developer\\Desktop\\Testing cam1\\cam12\\individual files\\ch03_20210719133111_normal.mp4")
+    print(cap.isOpened())
+    while cap.isOpened():
+        imagedump=[]
+        ret,frame=cap.read()
 
+        for i in range(10):
+            ret,frame=cap.read()
+            
+            if not hasattr(frame,'shape'):
+                flag=1
+                break
+            
+            image = imutils.resize(frame,width=640,height=360)
+
+            frame=cv2.resize(frame, (640,360), interpolation = cv2.INTER_AREA)
+            gray=0.2989*frame[:,:,0]+0.5870*frame[:,:,1]+0.1140*frame[:,:,2]
+            gray=(gray-gray.mean())/gray.std()
+            gray=np.clip(gray,0,1)
+            imagedump.append(gray)
+        
+        if flag==1:
+            break
+
+        imagedump=np.array(imagedump)
+        #print(imagedump)
+
+        imagedump.resize(227,227,10)
+        imagedump=np.expand_dims(imagedump,axis=0)
+        imagedump=np.expand_dims(imagedump,axis=4)
+        
+        #print(imagedump)
+
+        output = model.predict(imagedump)
+
+        loss = mean_squared_loss(imagedump,output)
+        
+        print(loss)
+
+        if frame.any()==None:
+            print("none")
+
+        if cv2.waitKey(10) & 0xFF==ord('q'):
+            break
+        if (loss>0.00066 and loss<0.000675) or (loss>0.00069 and loss<0.00071):                
+            print('Abnormal Event Detected')
+            cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
+
+        cv2.imshow("video",image)
+
+    cap.release()
+    cv2.destroyAllWindows()
+    
 @app.post("/extract_frames")
 async def extract_frames(file: UploadFile = File(...), interval: int = Form(...)):
     try:
@@ -142,5 +201,15 @@ async def get_frame(frame_name: str):
     if os.path.exists(frame_path):
         return FileResponse(frame_path)
     else:
-        raise HTTPException(status_code=404, detail="Frame not found.")
-    
+        raise HTTPException(status_code=404, detail="Frame not found.")    
+
+def mean_squared_loss(x1,x2):
+    difference=x1-x2
+    a,b,c,d,e=difference.shape
+    n_samples=a*b*c*d*e
+    sq_difference=difference**2
+    Sum=sq_difference.sum()
+    distance=np.sqrt(Sum)
+    mean_distance=distance/n_samples
+
+    return mean_distance
