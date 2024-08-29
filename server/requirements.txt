@@ -7,3 +7,4 @@ pymongo
 imutils
 keras
 numpy
+tensorflow

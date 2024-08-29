@@ -73,11 +73,13 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail="An error occurred during file upload.")
 
-@app.get("/find-abnormal-case", response_model=FileResponse)
-async def find_abnormal_case():
-    model=load_model("saved_model.h5")
+@app.get("/find-abnormal-case/{video_file}")
+async def find_abnormal_case(video_file: str):
+    file_location = os.path.join(UPLOAD_DIRECTORY, video_file)
+    print("video file path: ", file_location)
+    model=load_model("saved_model.keras")
     flag=0
-    cap = cv2.VideoCapture("C:\\Users\\Developer\\Desktop\\Testing cam1\\cam12\\individual files\\ch03_20210719133111_normal.mp4")
+    cap = cv2.VideoCapture(file_location)
     print(cap.isOpened())
     while cap.isOpened():
         imagedump=[]
@@ -125,7 +127,7 @@ async def find_abnormal_case():
             print('Abnormal Event Detected')
             cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
 
-        cv2.imshow("video",image)
+        # cv2.imshow("video",image)
 
     cap.release()
     cv2.destroyAllWindows()
