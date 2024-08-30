@@ -133,7 +133,7 @@ async def find_abnormal_case(video_file: str):
             # print('Abnormal Event Detected')
             folder_name = video_file.split('.')
             store_frame(folder_name[0], image, frame_count)
-            # cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
+            cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
             
         frame_count+=1
         # cv2.imshow("video",image)
