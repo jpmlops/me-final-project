@@ -16,6 +16,11 @@
           <th
             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
           >
+            Status
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
             Created At
           </th>
           <th
@@ -41,6 +46,24 @@
             </NuxtLink>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            {{
+              item?.status == null ||
+              item?.status == "" ||
+              item.status == "Pending"
+                ? "Pending"
+                : item.status
+            }}
+            |
+            <button
+              class="text-red-700 border-orange-500 py-1"
+              @click="processVideo(item?.name)"
+              v-if="!status"
+            >
+              Video Process
+            </button>
+            <span v-else>Processing</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             {{ item.created_at }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -58,8 +81,7 @@ definePageMeta({ layout: "default" });
 // const data = [{ Video: "mlops.mp4", Frames: "List", Delete: "Delete" }];
 
 const data = ref<any[]>([]);
-
-console.log(data.value.length);
+const status = ref(false);
 const fetchImages = async (): Promise<void> => {
   try {
     const response = await fetch("http://localhost:8020/video-frames", {
@@ -71,6 +93,25 @@ const fetchImages = async (): Promise<void> => {
     data.value.push(...resArray);
 
     // skip.value += limit;
+  } catch (error) {
+    console.error("Error fetching images:", error);
+  }
+};
+const processVideo = async (name: string): Promise<void> => {
+  try {
+    if (name == null || name == "") return;
+
+    status.value = true;
+    const response = await fetch(
+      "http://localhost:8020/find-abnormal-case/" + name,
+      {
+        method: "GET",
+      }
+    );
+    const res = await response.json();
+    console.log(res);
+    status.value = false;
+    fetchImages();
   } catch (error) {
     console.error("Error fetching images:", error);
   }

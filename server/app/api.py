@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from pydantic import BaseModel
+import logging
 import shutil
 from keras.models import load_model
 from pymongo.collection import Collection
@@ -27,6 +28,10 @@ def db_event():
     client = MongoClient("mongodb://localhost:27017/")
     db = client.me_video
     
+@app.on_event("shutdown")
+async def shutdown_event():
+    logging.info("Shutting down...")
+    
 origins = [
     "http://localhost:3000",
     "localhost:3000"
@@ -35,6 +40,7 @@ origins = [
 # Directory to save uploaded files
 UPLOAD_DIRECTORY = "./uploads"
 FRAMES_DIRECTORY = "./frames"
+ABNORMAL_DIRECTORY = "./abnormal"
 
 
 if not os.path.exists(UPLOAD_DIRECTORY):
@@ -43,7 +49,13 @@ if not os.path.exists(UPLOAD_DIRECTORY):
 if not os.path.exists(FRAMES_DIRECTORY):
     os.makedirs(FRAMES_DIRECTORY)
     
+if not os.path.exists(ABNORMAL_DIRECTORY):
+    os.makedirs(ABNORMAL_DIRECTORY)
+    
 app.mount("/frames", StaticFiles(directory="frames"), name="frames")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/abnormal", StaticFiles(directory="abnormal"), name="abnormal")
+app.mount("/ml", StaticFiles(directory="ml"), name="ml")
 
 app.add_middleware(
     CORSMiddleware,
@@ -76,10 +88,10 @@ async def upload_file(file: UploadFile = File(...)):
 @app.get("/find-abnormal-case/{video_file}")
 async def find_abnormal_case(video_file: str):
     file_location = os.path.join(UPLOAD_DIRECTORY, video_file)
-    print("video file path: ", file_location)
-    model=load_model("saved_model.keras")
+    model=load_model("ml/saved_model.keras")
     flag=0
     cap = cv2.VideoCapture(file_location)
+    frame_count = 0
     print(cap.isOpened())
     while cap.isOpened():
         imagedump=[]
@@ -105,32 +117,30 @@ async def find_abnormal_case(video_file: str):
 
         imagedump=np.array(imagedump)
         #print(imagedump)
-
         imagedump.resize(227,227,10)
         imagedump=np.expand_dims(imagedump,axis=0)
-        imagedump=np.expand_dims(imagedump,axis=4)
-        
+        imagedump=np.expand_dims(imagedump,axis=4)        
         #print(imagedump)
-
         output = model.predict(imagedump)
-
-        loss = mean_squared_loss(imagedump,output)
-        
+        loss = mean_squared_loss(imagedump,output)       
         print(loss)
-
         if frame.any()==None:
             print("none")
 
         if cv2.waitKey(10) & 0xFF==ord('q'):
             break
         if (loss>0.00066 and loss<0.000675) or (loss>0.00069 and loss<0.00071):                
-            print('Abnormal Event Detected')
-            cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
-
+            # print('Abnormal Event Detected')
+            folder_name = video_file.split('.')
+            store_frame(folder_name[0], image, frame_count)
+            # cv2.putText(image,"Abnormal Event",(100,100),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),4,cv2.LINE_AA)
+            
+        frame_count+=1
         # cv2.imshow("video",image)
-
+    update_status(video_file)
     cap.release()
     cv2.destroyAllWindows()
+    return {"message": "Video Processed", "status":True}
     
 @app.post("/extract_frames")
 async def extract_frames(file: UploadFile = File(...), interval: int = Form(...)):
@@ -174,6 +184,12 @@ def extract_frames_from_video(video_path: str, interval:int, path: str):
         success, frame = cap.read()
 
     cap.release()
+    
+def store_frame(path: str, image, frame_count):
+    nested_dir = os.path.join(ABNORMAL_DIRECTORY, path)
+    os.makedirs(nested_dir, exist_ok=True)    
+    frame_filename = os.path.join(nested_dir, f"frame_{frame_count}.jpg")
+    cv2.imwrite(frame_filename, image)          
 
 @app.get("/video-frames")
 async def list_frames():
@@ -215,3 +231,10 @@ def mean_squared_loss(x1,x2):
     mean_distance=distance/n_samples
 
     return mean_distance
+
+def update_status(video_file: str):
+    db = client.me_video
+    collection = db.video
+    item = collection.update_one({"name": video_file}, {"$set": {"status": "Processed"}})
+    # item = collection.insert_one({"name": new_filename, "slug": "video_{timestamp}", "created_at": datetime.now, "updated_at": datetime.now})
+    return item
