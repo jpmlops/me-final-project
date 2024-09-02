@@ -57,6 +57,7 @@ app.mount("/frames", StaticFiles(directory="frames"), name="frames")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/abnormal", StaticFiles(directory="abnormal"), name="abnormal")
 app.mount("/ml", StaticFiles(directory="ml"), name="ml")
+app.mount("/training", StaticFiles(directory="training"), name="training")
 
 app.add_middleware(
     CORSMiddleware,
@@ -254,3 +255,29 @@ async def copy_image_endpoint(paths: FilePaths):
         return {"message": "Image copied successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/move_file")
+async def move_file(image: str = "", subfolder: str= "", source_folder: str = "", destination_folder: str = ""):
+    """Moves a file from one folder to another.
+
+    Args:
+        file (UploadFile): The file to be moved.
+        source_folder (str, optional): The source folder. Defaults to the current working directory.
+        destination_folder (str, optional): The destination folder. Defaults to the current working directory.
+
+    Raises:
+        HTTPException: If there's an error moving the file.
+    """
+
+    try:
+        source_path = os.path.join(source_folder + '/' + subfolder, image)
+        destination_path = os.path.join(destination_folder + '/' + subfolder, image)
+
+        if not os.path.exists(source_path):
+            raise HTTPException(status_code=404, detail="Source file not found")
+
+        shutil.move(source_path, destination_path)
+
+        return {"message": "File moved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error moving file: {e}")
