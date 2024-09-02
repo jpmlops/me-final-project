@@ -12,3 +12,8 @@ def copy_image(source_path: str, destination_path: str) -> None:
         raise FileNotFoundError(f"Source file not found: {source_path}")
     shutil.copy(source_path, destination_path)
 
+class Item(BaseModel):
+    imagename: str
+    source_folder: str 
+    destination_folder: str
+    subfolder: str

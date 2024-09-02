@@ -14,7 +14,7 @@ from datetime import datetime
 import imutils
 from pymongo import MongoClient
 import numpy as np
-from .util import FilePaths, copy_image
+from .util import FilePaths, copy_image, Item
 app = FastAPI()
 
 # Create a global variable for the MongoDB client and database
@@ -52,6 +52,9 @@ if not os.path.exists(FRAMES_DIRECTORY):
     
 if not os.path.exists(ABNORMAL_DIRECTORY):
     os.makedirs(ABNORMAL_DIRECTORY)
+    
+if not os.path.exists(TRAINING_DIRECTORY):
+    os.makedirs(TRAINING_DIRECTORY)
     
 app.mount("/frames", StaticFiles(directory="frames"), name="frames")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -257,7 +260,7 @@ async def copy_image_endpoint(paths: FilePaths):
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/move_file")
-async def move_file(image: str = "", subfolder: str= "", source_folder: str = "", destination_folder: str = ""):
+async def move_file(item: Item):
     """Moves a file from one folder to another.
 
     Args:
@@ -268,11 +271,15 @@ async def move_file(image: str = "", subfolder: str= "", source_folder: str = ""
     Raises:
         HTTPException: If there's an error moving the file.
     """
-
+    print(item.imagename, ">> imagename")
+    print(item, ">> item")
     try:
-        source_path = os.path.join(source_folder + '/' + subfolder, image)
-        destination_path = os.path.join(destination_folder + '/' + subfolder, image)
-
+        source_path = os.path.join(item.source_folder + '/' + item.subfolder, item.imagename)
+        nested_dir = os.path.join(item.destination_folder, item.subfolder)
+        os.makedirs(nested_dir, exist_ok=True)
+        
+        destination_path = os.path.join(nested_dir, item.imagename)
+        
         if not os.path.exists(source_path):
             raise HTTPException(status_code=404, detail="Source file not found")
 

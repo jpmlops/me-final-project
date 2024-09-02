@@ -1,18 +1,15 @@
 <template>
   <div v-if="images.length > 0" class="grid grid-cols-6 gap-x-8 gap-y-4">
     <div v-for="image in images" :key="image" class="relative">
-      <img
-        :src="`${baseurl}${queryParam}/${image}`"
-        :alt="`Image ${image}`"
-        @click="moveFile(image, queryParam as string)"
-      />
+      <img :src="`${baseurl}${queryParam}/${image}`" :alt="`Image ${image}`" />
       <button
         class="absolute bottom-2 right-2 bg-blue-500 text-white text-[12px] px-2 py-2 rounded shadow-md hover:bg-blue-600"
+        @click="moveFile(image, queryParam)"
       >
         Use for Training
       </button>
       <p v-if="uploading" class="pt-3">Uploading...</p>
-      <p v-if="uploadResponse" class="pt-3">{{ uploadResponse }}</p>
+      <!-- <p v-if="uploadResponse" class="pt-3 absolute top-2 right-2">{{ uploadResponse }}</p>-->
     </div>
   </div>
 </template>
@@ -63,16 +60,17 @@ onMounted(() => {
 });
 
 async function moveFile(imageName: string, queryParam: string) {
-  if (imageName) {
+  if (!imageName) {
     uploadResponse.value = "Please select a file first.";
     return;
   }
 
-  const formData = new FormData();
-  formData.append("file", imageName);
-  formData.append("subfolder", queryParam);
-  formData.append("source_folder", "abnormal");
-  formData.append("destination_folder", "training");
+  const formData = {
+    imagename: imageName,
+    subfolder: queryParam,
+    source_folder: "abnormal",
+    destination_folder: "training",
+  };
 
   uploading.value = true;
   uploadResponse.value = "";
@@ -80,11 +78,15 @@ async function moveFile(imageName: string, queryParam: string) {
   try {
     const response = await fetch(`http://localhost:8020/move_file`, {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
     });
 
     const result = await response.json();
     uploadResponse.value = result.message || "Moved successful!";
+    fetchImages();
   } catch (error) {
     uploadResponse.value = "Moved failed!";
   } finally {
