@@ -1,5 +1,7 @@
 links
 
-uvicorn app.api:app --host "0.0.0.0" --port 8020 --relaod
+uvicorn app.api:app --relaod --host "0.0.0.0" --port 8020
 
 pip install -r requirements.txt
+
+abnormal

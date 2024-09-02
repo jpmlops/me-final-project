@@ -1,5 +1,5 @@
 import cv2
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -14,7 +14,7 @@ from datetime import datetime
 import imutils
 from pymongo import MongoClient
 import numpy as np
-
+from .util import FilePaths, copy_image
 app = FastAPI()
 
 # Create a global variable for the MongoDB client and database
@@ -41,6 +41,7 @@ origins = [
 UPLOAD_DIRECTORY = "./uploads"
 FRAMES_DIRECTORY = "./frames"
 ABNORMAL_DIRECTORY = "./abnormal"
+TRAINING_DIRECTORY = "./training"
 
 
 if not os.path.exists(UPLOAD_DIRECTORY):
@@ -205,8 +206,10 @@ async def list_frames():
     return {"frames": frames}
 
 @app.get("/frames-list/{folder}")
-async def list_frames(folder:str):
-    frame_path = os.path.join(FRAMES_DIRECTORY, folder)
+async def list_frames(folder:str, type: str = Query("frames")):
+    frame_path =  os.path.join(FRAMES_DIRECTORY, folder) if type=='frames' else os.path.join(ABNORMAL_DIRECTORY, folder)
+    print(type, ">> type")
+    print(frame_path, ">> path")
     if not os.path.exists(frame_path):
         raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
 
@@ -238,3 +241,16 @@ def update_status(video_file: str):
     item = collection.update_one({"name": video_file}, {"$set": {"status": "Processed"}})
     # item = collection.insert_one({"name": new_filename, "slug": "video_{timestamp}", "created_at": datetime.now, "updated_at": datetime.now})
     return item
+
+@app.post("/copy-image/")
+async def copy_image_endpoint(paths: FilePaths):
+    try:
+        # Check if source file exists
+        if not os.path.isfile(paths.source):
+            raise HTTPException(status_code=404, detail="Source file not found")
+
+        # Copy the image
+        copy_image(paths.source, paths.destination)
+        return {"message": "Image copied successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

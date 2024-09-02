@@ -39,10 +39,22 @@
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             <NuxtLink
-              :to="{ path: 'frames', query: { param: item.slug } }"
-              class="text-red-700 border-2 border-orange-500 py-1 px-5"
+              :to="{
+                path: 'frames',
+                query: { param: item.slug, ctype: 'frame' },
+              }"
+              class="text-red-700 border-2 border-orange-500 py-1 px-3"
             >
               Frames List
+            </NuxtLink>
+            <NuxtLink
+              :to="{
+                path: 'frames',
+                query: { param: item.slug, ctype: 'abnormal' },
+              }"
+              class="text-red-700 border-2 border-orange-500 py-1 px-3 mx-1"
+            >
+              Abnormal
             </NuxtLink>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
