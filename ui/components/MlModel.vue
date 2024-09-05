@@ -1,13 +1,7 @@
 <template>
   <div v-if="images.length > 0" class="grid grid-cols-6 gap-x-8 gap-y-4">
     <div v-for="image in images" :key="image" class="relative">
-      <img :src="`${baseurl}${queryParam}/${image}`" :alt="`Image ${image}`" />
-      <button
-        class="absolute bottom-2 right-2 bg-blue-500 text-white text-[12px] px-2 py-2 rounded shadow-md hover:bg-blue-600"
-        @click="moveFile(image, queryParam)"
-      >
-        Use for Training
-      </button>
+      <img :src="`${baseurl}${queryParam}/${image}`" :alt="`Image ${image}`" />      
       <p v-if="uploading" class="pt-3">Uploading...</p>
       <!-- <p v-if="uploadResponse" class="pt-3 absolute top-2 right-2">{{ uploadResponse }}</p>-->
     </div>
@@ -27,15 +21,14 @@ const uploadResponse = ref("");
 const route = useRoute();
 const queryParam = route.query.param;
 const ctype = route.query.ctype;
-console.log(ctype, ">>>");
 const baseurl =
   ctype == "true"
-    ? "http://localhost:8020/frames/"
-    : "http://localhost:8020/abnormal/";
+    ? "http://localhost:8020/ml/"
+    : "http://localhost:8020/ml/";
 const fetchImages = async (): Promise<void> => {
   try {
     const response = await fetch(
-      `http://localhost:8020/frames-list/${queryParam}?type=${ctype?.toString()}`,
+      `http://localhost:8020/ml-model-list/`,
       {
         method: "GET",
       }
