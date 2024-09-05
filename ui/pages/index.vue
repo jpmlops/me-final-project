@@ -7,12 +7,13 @@
         class="flex py-[30px] justify-between flex-row text-[#ffffff] w-full"
       >
         <h1 class="text-[20px]">Video list</h1>
-        <button class="border-2 p-3 hover:bg-[#ffffff] hover:text-yellow-900">
+        <button class="border-2 p-1 hover:bg-[#ffffff] hover:text-yellow-900">
          <NuxtLink to="/addVideo">Add Video +</NuxtLink> 
         </button>
       </div>
 
       <DataTable />
+      <DataTableTraining />
     </div>
   </div>
 </template>
