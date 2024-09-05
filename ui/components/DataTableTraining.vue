@@ -51,7 +51,9 @@
             </NuxtLink>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            <button class="text-red-700 border-2 border-orange-500 py-1 px-3">Train</button>
+            <button class="text-red-700 border-2 border-orange-500 py-1 px-3" @click="showModal = true">
+              Train
+            </button>
           </td>
           <td
             class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -66,11 +68,18 @@
         </tr>
       </tbody>
     </table>
+    <TrainingModel
+      :isOpen="showModal"
+      @update:isOpen="showModal = $event"
+      title="Training Model"
+      content="Training content."
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import TrainingModel from "./TrainingModel.vue";
 definePageMeta({ layout: "default" });
 // const data = [{ Video: "mlops.mp4", Frames: "List", Delete: "Delete" }];
 
@@ -113,4 +122,5 @@ const processVideo = async (name: string): Promise<void> => {
 onMounted(() => {
   fetchImages();
 });
+const showModal = ref(false);
 </script>
