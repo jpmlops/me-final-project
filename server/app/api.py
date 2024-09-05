@@ -212,8 +212,15 @@ async def list_frames():
 @app.get("/frames-list/{folder}")
 async def list_frames(folder:str, type: str = Query("frames")):
     frame_path =  os.path.join(FRAMES_DIRECTORY, folder) if type=='frames' else os.path.join(ABNORMAL_DIRECTORY, folder)
-    print(type, ">> type")
-    print(frame_path, ">> path")
+    if not os.path.exists(frame_path):
+        raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
+
+    frames = [f for f in os.listdir(frame_path) if os.path.isfile(os.path.join(frame_path, f))]        
+    return {"frames": frames}
+
+@app.get("/ml-model-list")
+async def model_list():
+    frame_path =  "ml"
     if not os.path.exists(frame_path):
         raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
 
@@ -223,8 +230,6 @@ async def list_frames(folder:str, type: str = Query("frames")):
 @app.get("/training-frames-list/{folder}")
 async def list_frames(folder:str, type: str = Query("frames")):
     frame_path =  os.path.join(TRAINING_DIRECTORY, folder) if type=='frames' else os.path.join(TRAINING_DIRECTORY, folder)
-    print(type, ">> type")
-    print(frame_path, ">> path")
     if not os.path.exists(frame_path):
         raise HTTPException(status_code=500, detail=f"An error occurred during frames list - Frames folder doesnt exist")
 
