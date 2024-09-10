@@ -6,6 +6,9 @@ class FilePaths(BaseModel):
     source: str
     destination: str
 
+class MlModel(BaseModel):
+    frame_name: str
+
 def copy_image(source_path: str, destination_path: str) -> None:
     """Copy an image from the source path to the destination path."""
     if not os.path.isfile(source_path):

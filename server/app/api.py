@@ -14,7 +14,7 @@ from datetime import datetime
 import imutils
 from pymongo import MongoClient
 import numpy as np
-from .util import FilePaths, copy_image, Item
+from .util import FilePaths, copy_image, Item, MlModel
 app = FastAPI()
 
 # Create a global variable for the MongoDB client and database
@@ -275,6 +275,25 @@ async def copy_image_endpoint(paths: FilePaths):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+@app.post("/ml-model-training")
+async def ml_model_training(data: MlModel):
+    print(data.frame_name, ">> frame_name")
+    try:
+        # Check if source file exists
+        if not os.path.isfile("ml/"+data.frame_name):
+            raise HTTPException(status_code=404, detail="Source file not found")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        new_filename = f"ml_{timestamp}.keras"
+        # Copy the image
+        copy_image("ml/"+data.frame_name, "ml/"+new_filename)
+        db = client.me_video
+        collection = db.mlModel
+        item = collection.insert_one({"modelName": new_filename, "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()})
+        print("item: ", item)
+        return {"message": "Model created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+     
 @app.post("/move_file")
 async def move_file(item: Item):
     """Moves a file from one folder to another.
@@ -287,8 +306,6 @@ async def move_file(item: Item):
     Raises:
         HTTPException: If there's an error moving the file.
     """
-    print(item.imagename, ">> imagename")
-    print(item, ">> item")
     try:
         source_path = os.path.join(item.source_folder + '/' + item.subfolder, item.imagename)
         nested_dir = os.path.join(item.destination_folder, item.subfolder)

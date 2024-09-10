@@ -19,6 +19,11 @@
         </select>
       </div>
       <button
+        class="bg-red-500 text-white py-2 px-4 mt-3 rounded hover:bg-red-600"
+      >
+        Train
+      </button>
+      <button
         @click="close"
         class="bg-red-500 text-white py-2 px-4 mt-3 rounded hover:bg-red-600"
       >
